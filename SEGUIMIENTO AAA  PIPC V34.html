@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Programas de Protección Civil</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+    <style>
+        body {
+            background-color: #f4f4f4;
+            padding: 20px;
+        }
+        .table-responsive {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+        }
+        .tooltip-custom {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.75);
+            color: white;
+            padding: 5px;
+            border-radius: 5px;
+            font-size: 12px;
+            display: none;
+            white-space: nowrap;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2 class="text-center">Gestión de Programas de Protección Civil</h2>
+        <div class="table-responsive">
+            <table class="table table-bordered" id="programTable">
+                <thead>
+                    <tr>
+                        <th>Cliente</th>
+                        <th>Fecha Contratación</th>
+                        <th>Fecha Compromiso</th>
+                        <th>Asignado a</th>
+                        <th>Inicio</th>
+                        <th>Avance (%)</th>
+                        <th>Status</th>
+                        <th>Fecha Visto Bueno</th>
+                        <th>Fecha Entregado</th>
+                        <th>Agente</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+            <button class="btn btn-primary" onclick="addRow()">Agregar</button>
+        </div>
+    </div>
+    <script>
+        function addRow() {
+            let table = document.getElementById("programTable").getElementsByTagName('tbody')[0];
+            let row = table.insertRow();
+            
+            for (let i = 0; i < 11; i++) {
+                let cell = row.insertCell(i);
+                if ([1, 2, 4, 7, 8].includes(i)) {
+                    cell.innerHTML = `<input type='date' class='form-control' onblur='checkDateMismatch(this)'>`;
+                } else if (i === 5) {
+                    cell.innerHTML = `<input type='number' class='form-control' min='0' max='100' value='0'>`; 
+                } else if (i === 6) {
+                    cell.innerHTML = `<select class='form-control' onmouseover='showTooltipStatus(this)' onmouseout='hideTooltip()' onchange='checkDateMismatch(this)'>
+                                        <option value='Iniciado'>Iniciado</option>
+                                        <option value='Ingresado'>Ingresado</option>
+                                        <option value='Con Observaciones'>Con Observaciones</option>
+                                        <option value='Con V.B.'>Con V.B.</option>
+                                     </select>`;
+                } else {
+                    cell.innerHTML = `<input type='text' class='form-control' maxlength='60' onmouseover='showTooltip(this)' onmouseout='hideTooltip()'>`;
+                }
+            }
+            let actions = row.insertCell(10);
+            actions.innerHTML = `<button class='btn btn-warning' onclick='lockRow(this)'>Guardar</button>`;
+        }
+        
+        function checkDateMismatch(element) {
+            let row = element.parentNode.parentNode;
+            let fechaCompromiso = row.cells[2].getElementsByTagName('input')[0].value;
+            let status = row.cells[6].getElementsByTagName('select')[0].value;
+            
+            if (fechaCompromiso && new Date(fechaCompromiso) < new Date() && status !== 'Ingresado') {
+                alert('⚠️ Atención: Hay un desfase entre la fecha de compromiso y el estatus aún no está como "Ingresado".');
+            }
+        }
+        
+        function lockRow(btn) {
+            let row = btn.parentNode.parentNode;
+            let inputs = row.getElementsByTagName('input');
+            for (let input of inputs) {
+                if (input.parentNode.cellIndex === 1 || input.parentNode.cellIndex === 2) {
+                    input.setAttribute('disabled', 'true');
+                }
+            }
+            btn.innerText = "Editar";
+            btn.setAttribute("onclick", "editRow(this)");
+        }
+        
+        function editRow(btn) {
+            let row = btn.parentNode.parentNode;
+            let inputs = row.getElementsByTagName('input');
+            for (let input of inputs) {
+                if (input.parentNode.cellIndex !== 1 && input.parentNode.cellIndex !== 2) {
+                    input.removeAttribute('disabled');
+                }
+            }
+            btn.innerText = "Guardar";
+            btn.setAttribute("onclick", "lockRow(this)");
+        }
+        
+        function showTooltip(element) {
+            let tooltip = document.createElement('div');
+            tooltip.className = 'tooltip-custom';
+            tooltip.innerText = element.value;
+            document.body.appendChild(tooltip);
+            let rect = element.getBoundingClientRect();
+            tooltip.style.left = rect.left + window.scrollX + 'px';
+            tooltip.style.top = rect.top + window.scrollY - 30 + 'px';
+            tooltip.style.display = 'block';
+            element.tooltip = tooltip;
+        }
+        
+        function showTooltipStatus(element) {
+            let tooltip = document.createElement('div');
+            tooltip.className = 'tooltip-custom';
+            tooltip.innerText = element.options[element.selectedIndex].text;
+            document.body.appendChild(tooltip);
+            let rect = element.getBoundingClientRect();
+            tooltip.style.left = rect.left + window.scrollX + 'px';
+            tooltip.style.top = rect.top + window.scrollY - 30 + 'px';
+            tooltip.style.display = 'block';
+            element.tooltip = tooltip;
+        }
+        
+        function hideTooltip() {
+            let tooltips = document.querySelectorAll('.tooltip-custom');
+            tooltips.forEach(tooltip => tooltip.remove());
+        }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<div class='container mt-4'>
+        <h3 class='text-center'>Resumen de Cumplimiento</h3>
+        <canvas id='complianceChart'></canvas>
+    </div>
+    <script src='https://cdn.jsdelivr.net/npm/chart.js'></script>
+    <script>
+        function updateChart() {
+            let rows = document.getElementById("programTable").getElementsByTagName('tbody')[0].rows;
+            let onTime = 0;
+            let delayed = 0;
+            
+            for (let row of rows) {
+                let fechaCompromiso = row.cells[2].getElementsByTagName('input')[0].value;
+                let fechaEntregado = row.cells[8].getElementsByTagName('input')[0].value;
+                
+                if (fechaCompromiso && fechaEntregado) {
+                    if (new Date(fechaEntregado) <= new Date(fechaCompromiso)) {
+                        onTime++;
+                    } else {
+                        delayed++;
+                    }
+                }
+            }
+            
+            let ctx = document.getElementById('complianceChart').getContext('2d');
+            if (window.complianceChart) {
+                window.complianceChart.destroy();
+            }
+            window.complianceChart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: ['Cumplidos en tiempo', 'Desfasados'],
+                    datasets: [{
+                        data: [onTime, delayed],
+                        backgroundColor: ['#28a745', '#dc3545']
+                    }]
+                },
+                options: {
+                    responsive: true
+                }
+            });
+        }
+        setInterval(updateChart, 5000);
+    </script>
+</body>
+</html>
